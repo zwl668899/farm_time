@@ -285,6 +285,28 @@
         .task-meta {
             color: #cbd5f5;
         }
+        .land-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            margin-right: 6px;
+            vertical-align: middle;
+            border: 1px solid rgba(255,255,255,0.75);
+            box-shadow: 0 0 0 1px rgba(15,23,42,0.25);
+        }
+        .land-normal {
+            background: #ffffff;
+            border-color: #e5e7eb;
+        }
+        .land-black {
+            background: #111827;
+            border-color: #9ca3af;
+        }
+        .land-gold {
+            background: #f59e0b;
+            border-color: #fde68a;
+        }
         .task-timer {
             font-variant-numeric: tabular-nums;
             font-size: 18px;
@@ -520,15 +542,22 @@
         div.dataset.id = task.id;
         const cropLabel = task.duration + ' 小时作物 · ' + (task.seasons === 2 ? '2 季' : '1 季');
         let landLabel = '普通土地';
-        if (task.land === 'black') landLabel = '黑土地';
-        if (task.land === 'gold') landLabel = '金土地';
+        let landClass = 'land-normal';
+        if (task.land === 'black') {
+            landLabel = '黑土地';
+            landClass = 'land-black';
+        }
+        if (task.land === 'gold') {
+            landLabel = '金土地';
+            landClass = 'land-gold';
+        }
         const note = task.note ? task.note : '';
         const totalSeasons = task.schedule.length;
         const nextIndex = task.nextIndex;
         const nextPlan = task.schedule[nextIndex] || null;
         div.innerHTML =
             '<div class="task-main">' +
-            '<div class="task-title">' + (note ? note : '土地') + '</div>' +
+            '<div class="task-title"><span class="land-dot ' + landClass + '"></span>' + (note ? note : '土地') + '</div>' +
             '<div class="task-meta">' +
             cropLabel + ' · ' + landLabel +
             '<br>开始时间：' + task.startTimeStr +
@@ -558,13 +587,23 @@
         const totalMinutesNow = now.getHours() * 60 + now.getMinutes();
         const totalSecondsNow = totalMinutesNow * 60 + now.getSeconds();
         const audio = document.getElementById('dingAudio');
+        const fallbackMessages = [];
         function notify(msg) {
+            let pushedSystemNotify = false;
             if ('Notification' in window && Notification.permission === 'granted') {
                 new Notification(msg);
+                pushedSystemNotify = true;
             }
             if (audio) {
                 audio.currentTime = 0;
                 audio.play().catch(() => {});
+            }
+            if (navigator.vibrate) {
+                navigator.vibrate([220, 120, 220]);
+            }
+            // 移动端或本地文件环境下通知权限常不可用，降级为页面弹窗提示
+            if (!pushedSystemNotify) {
+                fallbackMessages.push(msg);
             }
         }
         const toRemove = [];
@@ -617,6 +656,9 @@
             const remaining = tasks.filter(t => !toRemove.includes(t.id));
             saveTasks(remaining);
             onAutoDelete(remaining);
+        }
+        if (fallbackMessages.length > 0) {
+            alert(fallbackMessages.join('\n'));
         }
     }
     document.addEventListener('DOMContentLoaded', function () {
@@ -673,6 +715,11 @@
                 taskList.appendChild(el);
             });
             taskCountChip.textContent = tasks.length + ' 个任务';
+            // 立即刷新一次，避免新渲染后短暂显示 --:--:--
+            updateTaskTimers(tasks, taskList, function (newTasks) {
+                tasks = newTasks;
+                renderAllTasks();
+            });
         }
         renderAllTasks();
 
