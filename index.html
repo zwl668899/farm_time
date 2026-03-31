@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>农场计时面板</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- 下面内容与 index.php 中的 HTML / CSS / JS 保持一致，只去掉了 PHP 头部 -->
+    <style>
+        :root {
+            --bg: #f3f4f6;
+            --bg-surface: #ffffff;
+            --bg-card: #ffffff;
+            --border-subtle: #e5e7eb;
+            --border-strong: #d1d5db;
+            --accent: #22c55e;
+            --accent-soft: rgba(34, 197, 94, 0.1);
+            --accent-strong: #15803d;
+            --text-main: #0f172a;
+            --text-muted: #4b5563;
+            --danger: #ef4444;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #e5f5ff 0, #f3f4f6 45%, #f3f4f6 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px 16px;
+        }
+        .app {
+            width: 100%;
+            max-width: 1180px;
+        }
+        .main {
+            background: var(--bg-surface);
+            border-radius: 20px;
+            padding: 18px 22px 20px;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 0.06em;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            border: 1px solid var(--border-subtle);
+            color: var(--accent-strong);
+            background: #ecfdf3;
+            white-space: nowrap;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+        .toolbar-left {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .toolbar-pill {
+            padding: 4px 9px;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            font-size: 11px;
+            color: var(--text-muted);
+            background: #f9fafb;
+        }
+        .toolbar-right {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.4fr);
+            gap: 16px;
+            align-items: flex-start;
+        }
+        @media (max-width: 960px) {
+            .layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+        .card {
+            background: var(--bg-card);
+            border-radius: 18px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+            padding: 14px 16px 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 60%),
+                radial-gradient(circle at bottom right, rgba(59,130,246,0.03), transparent 70%);
+            opacity: 1;
+            pointer-events: none;
+        }
+        .card-inner {
+            position: relative;
+            z-index: 1;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .chip {
+            font-size: 11px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            background-color: #f9fafb;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 10px;
+            margin-bottom: 10px;
+            align-items: flex-end;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1 1 120px;
+            min-width: 0;
+        }
+        label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        input[type="time"],
+        select,
+        input[type="text"] {
+            width: 100%;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+            background-color: #f9fafb;
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+        }
+        input[type="time"]:focus,
+        select:focus,
+        input[type="text"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.32);
+            background-color: #ffffff;
+        }
+        .hint {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .btn {
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #f9fafb;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow:
+                0 8px 18px rgba(22,163,74,0.35);
+            white-space: nowrap;
+        }
+        .btn span.icon {
+            font-size: 14px;
+        }
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow:
+                0 6px 16px rgba(22,163,74,0.3);
+        }
+        .btn-secondary {
+            background: #ecfdf3;
+            border: 1px solid rgba(34,197,94,0.55);
+            box-shadow: none;
+            color: var(--accent-strong);
+            font-size: 11px;
+            padding: 6px 14px;
+            border-radius: 999px;
+        }
+        .btn-secondary:active {
+            transform: translateY(1px);
+            background-color: #dcfce7;
+        }
+        .section-title {
+            font-size: 13px;
+            margin-top: 4px;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+        }
+        .divider {
+            margin: 8px 0;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(209,213,219,1), transparent);
+        }
+        .task-list {
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .task-card {
+            border-radius: 16px;
+            border: 1px solid rgba(15,23,42,0.06);
+            background:
+                linear-gradient(135deg, rgba(15,23,42,0.9), rgba(15,23,42,0.8)),
+                radial-gradient(circle at top left, rgba(34,197,94,0.22), transparent 60%);
+            padding: 12px 13px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            display: grid;
+            grid-template-columns: 1.2fr 1.3fr auto;
+            gap: 6px 10px;
+            align-items: center;
+        }
+        @media (max-width: 700px) {
+            .task-card {
+                grid-template-columns: 1fr;
+            }
+        }
+        .task-main {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .task-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #f9fafb;
+        }
+        .task-meta {
+            color: #cbd5f5;
+        }
+        .task-timer {
+            font-variant-numeric: tabular-nums;
+            font-size: 18px;
+            font-weight: 600;
+            color: #f9fafb;
+        }
+        .task-sub {
+            font-size: 11px;
+            color: #e5e7eb;
+            margin-top: 2px;
+        }
+        .task-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .tag-pill {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.9);
+            color: #e5e7eb;
+        }
+        .tag-pill.good {
+            border-color: rgba(34,197,94,0.9);
+            color: #bbf7d0;
+            background-color: rgba(22,163,74,0.24);
+        }
+        .tag-pill.danger {
+            border-color: rgba(248,113,113,0.9);
+            color: #fecaca;
+            background-color: rgba(185,28,28,0.3);
+        }
+        .task-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
+        }
+        .btn-ghost {
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            background: #ffffff;
+            color: var(--text-muted);
+            padding: 4px 12px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .btn-ghost:hover {
+            background-color: #f3f4f6;
+        }
+        .empty {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 8px 4px;
+        }
+        .footer-note {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #374151;
+        }
+        .footer-note b {
+            color: #111827;
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <main class="main">
+        <div class="app-header">
+            <div class="title-group">
+                <h1>农场计时面板</h1>
+                <div class="subtitle">快速创建多块土地的种植任务，成熟时自动提醒。</div>
+            </div>
+            <div class="badge">刷新不丢任务 · 关闭标签页清空</div>
+        </div>
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <div class="toolbar-pill">4 / 8 / 12 / 24 小时作物</div>
+                <div class="toolbar-pill">1 / 2 季规则 · 土地加速</div>
+            </div>
+            <div class="toolbar-right">
+                当前时间：<span id="toolbarNow"></span>
+            </div>
+        </div>
+
+        <div class="layout">
+        <!-- 左侧：添加种植任务 -->
+        <div class="card">
+            <div class="card-inner">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">添加新的种植任务</div>
+                        <div class="card-desc">每块地增加一个任务，支持 1/2 季与不同土地类型，并自动计算所有收割时间。</div>
+                    </div>
+                    <button class="btn-secondary" id="requestNotifyBtn" type="button">开启通知</button>
+                </div>
+
+                <div class="section-title">1. 基本信息</div>
+                <div class="form-row">
+                    <div class="field">
+                        <label>当前时间</label>
+                        <input type="time" id="currentTimeInput">
+                    </div>
+                    <div class="field">
+                        <label>作物成熟时间</label>
+                        <select id="current_duration">
+                            <option value="0.05">3 分钟测试作物</option>
+                            <option value="4">4 小时作物</option>
+                            <option value="8" selected>8 小时作物</option>
+                            <option value="12">12 小时作物</option>
+                            <option value="24">24 小时作物</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="field">
+                        <label>季数</label>
+                        <select id="current_season">
+                            <option value="1">1 季</option>
+                            <option value="2" selected>2 季</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>土地类型</label>
+                        <select id="current_land">
+                            <option value="normal">普通土地</option>
+                            <option value="black">黑土地</option>
+                            <option value="gold" selected>金土地</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>土地名称 / 备注（可选）</label>
+                        <input type="text" id="current_note" placeholder="例如：1 号金地 / 南边黑土">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="field">
+                        <label>&nbsp;</label>
+                        <button class="btn" id="addTaskBtn" type="button">
+                            <span class="icon">＋</span><span>添加到任务列表</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="section-title">2. 说明</div>
+                <div class="hint">
+                    - 2 季作物：第 1 季为基础时间，第 2 季为第 1 季的一半，同样受土地加速影响；<br>
+                    - 黑土地：时间 × 0.9；金土地：时间 × 0.8；结果精确到分钟并向下取整（最少 1 分钟）；<br>
+                    - 若开始时间早于当前真实时间，则会自动跳过已经成熟的季次；若所有季次都已成熟，则直接提示无需再添加任务。
+                </div>
+                <div class="footer-note">
+                    提醒说明：<b>网页需保持打开</b> 才能持续计时；若已开启浏览器通知，即使切换到其它标签页也会在成熟时弹出系统消息与提示音。
+                </div>
+                <audio id="dingAudio">
+                    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=" type="audio/wav">
+                </audio>
+            </div>
+        </div>
+
+        <!-- 右侧：任务列表 -->
+        <div class="card">
+            <div class="card-inner">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">正在计时的土地</div>
+                        <div class="card-desc">支持多个种植任务并行计时，到点自动提醒并从列表中移除。</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="chip" id="taskCountChip">0 个任务</div>
+                        <button class="btn-ghost" type="button" id="clearAllBtn">一键清空任务</button>
+                    </div>
+                </div>
+                <div id="taskList" class="task-list">
+                    <div class="empty">当前没有任务，请在左侧添加新的种植任务。</div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    function timeToMinutes(t) {
+        if (!t) return null;
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    }
+    function minutesToTime(min) {
+        min = ((min % (24 * 60)) + (24 * 60)) % (24 * 60);
+        const h = Math.floor(min / 60);
+        const m = min % 60;
+        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+    function applyLandSpeed(baseHours, land) {
+        let factor = 1;
+        if (land === 'black') factor = 0.9;
+        else if (land === 'gold') factor = 0.8;
+        let totalMinutes = Math.floor(baseHours * factor * 60);
+        if (totalMinutes < 1) totalMinutes = 1;
+        return totalMinutes;
+    }
+    function buildSeasons(baseHours, seasons, land) {
+        const firstMinutes = applyLandSpeed(baseHours, land);
+        if (seasons === 1) return [firstMinutes];
+        const secondBase = baseHours / 2;
+        const secondMinutes = applyLandSpeed(secondBase, land);
+        return [firstMinutes, secondMinutes];
+    }
+    const STORAGE_KEY = 'farm_tasks_session';
+    function saveTasks(tasks) {
+        try {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        } catch (e) {}
+    }
+    function loadTasks() {
+        try {
+            const raw = sessionStorage.getItem(STORAGE_KEY);
+            if (!raw) return [];
+            return JSON.parse(raw);
+        } catch (e) {
+            return [];
+        }
+    }
+    function buildTaskSeasons(baseHours, seasons, land) {
+        return buildSeasons(baseHours, seasons, land);
+    }
+    function createTaskElement(task, onDelete) {
+        const div = document.createElement('div');
+        div.className = 'task-card';
+        div.dataset.id = task.id;
+        const cropLabel = task.duration + ' 小时作物 · ' + (task.seasons === 2 ? '2 季' : '1 季');
+        let landLabel = '普通土地';
+        if (task.land === 'black') landLabel = '黑土地';
+        if (task.land === 'gold') landLabel = '金土地';
+        const note = task.note ? task.note : '';
+        const totalSeasons = task.schedule.length;
+        const nextIndex = task.nextIndex;
+        const nextPlan = task.schedule[nextIndex] || null;
+        div.innerHTML =
+            '<div class="task-main">' +
+            '<div class="task-title">' + (note ? note : '土地') + '</div>' +
+            '<div class="task-meta">' +
+            cropLabel + ' · ' + landLabel +
+            '<br>开始时间：' + task.startTimeStr +
+            '</div>' +
+            '</div>' +
+            '<div>' +
+            '<div class="task-timer" data-role="timer">--:--:--</div>' +
+            '<div class="task-sub" data-role="sub">' +
+            (nextPlan ? ('下一次成熟约在 ' + minutesToTime(nextPlan.harvestMinutes) +
+                ' · 第 ' + (nextIndex + 1) + '/' + totalSeasons + ' 次') : '任务已完成，待自动移除') +
+            '</div>' +
+            '</div>' +
+            '<div class="task-actions">' +
+            '<div class="task-tags">' +
+            (nextPlan ? '<span class="tag-pill good">计时中</span>' : '<span class="tag-pill danger">已完成</span>') +
+            '</div>' +
+            '<button class="btn-ghost" type="button" data-role="remove">提前成熟</button>' +
+            '</div>';
+        const removeBtn = div.querySelector('[data-role="remove"]');
+        removeBtn.addEventListener('click', function () {
+            onDelete(task.id);
+        });
+        return div;
+    }
+    function updateTaskTimers(tasks, container, onAutoDelete) {
+        const now = new Date();
+        const totalMinutesNow = now.getHours() * 60 + now.getMinutes();
+        const totalSecondsNow = totalMinutesNow * 60 + now.getSeconds();
+        const audio = document.getElementById('dingAudio');
+        function notify(msg) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(msg);
+            }
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(() => {});
+            }
+        }
+        const toRemove = [];
+        tasks.forEach(task => {
+            const el = container.querySelector('.task-card[data-id="' + task.id + '"]');
+            if (!el) return;
+            const timerEl = el.querySelector('[data-role="timer"]');
+            const subEl = el.querySelector('[data-role="sub"]');
+            const totalSeasons = task.schedule.length;
+            let idx = task.nextIndex;
+            if (idx >= totalSeasons) {
+                timerEl.textContent = '00:00:00';
+                subEl.textContent = '任务已完成，待自动移除';
+                toRemove.push(task.id);
+                return;
+            }
+            const targetMinutes = task.schedule[idx].harvestMinutes;
+            const targetSeconds = targetMinutes * 60;
+            let remain = targetSeconds - totalSecondsNow;
+            if (remain <= 0) {
+                const note = task.note ? task.note : '土地';
+                notify(note + ' 的作物已成熟（第 ' + (idx + 1) + '/' + totalSeasons + ' 次）');
+                idx++;
+                task.nextIndex = idx;
+                if (idx >= totalSeasons) {
+                    timerEl.textContent = '00:00:00';
+                    subEl.textContent = '任务已完成，待自动移除';
+                    toRemove.push(task.id);
+                    return;
+                } else {
+                    const nextPlan = task.schedule[idx];
+                    const nextTargetSeconds = nextPlan.harvestMinutes * 60;
+                    remain = nextTargetSeconds - totalSecondsNow;
+                }
+            }
+            if (remain < 0) remain = 0;
+            const h = Math.floor(remain / 3600);
+            const m = Math.floor((remain % 3600) / 60);
+            const s = remain % 60;
+            timerEl.textContent =
+                String(h).padStart(2, '0') + ':' +
+                String(m).padStart(2, '0') + ':' +
+                String(s).padStart(2, '0');
+            const next = task.schedule[task.nextIndex];
+            subEl.textContent =
+                '下一次成熟约在 ' + minutesToTime(next.harvestMinutes) +
+                ' · 第 ' + (task.nextIndex + 1) + '/' + totalSeasons + ' 次';
+        });
+        if (toRemove.length) {
+            const remaining = tasks.filter(t => !toRemove.includes(t.id));
+            saveTasks(remaining);
+            onAutoDelete(remaining);
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        const currentTimeInput = document.getElementById('currentTimeInput');
+        const current_duration = document.getElementById('current_duration');
+        const current_season = document.getElementById('current_season');
+        const current_land = document.getElementById('current_land');
+        const current_note = document.getElementById('current_note');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const requestNotifyBtn = document.getElementById('requestNotifyBtn');
+        const taskList = document.getElementById('taskList');
+        const taskCountChip = document.getElementById('taskCountChip');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const toolbarNow = document.getElementById('toolbarNow');
+
+        const now = new Date();
+        const nowStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        currentTimeInput.value = nowStr;
+        toolbarNow.textContent = nowStr;
+        setInterval(function () {
+            const n = new Date();
+            toolbarNow.textContent =
+                String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+        }, 30 * 1000);
+
+        requestNotifyBtn.addEventListener('click', function () {
+            if (!('Notification' in window)) {
+                alert('当前浏览器不支持系统通知。');
+                return;
+            }
+            Notification.requestPermission().then(function (result) {
+                if (result === 'granted') {
+                    alert('浏览器通知已开启，当作物成熟时将弹出系统消息。');
+                } else {
+                    alert('未授权通知或被拒绝，系统通知将不可用。');
+                }
+            });
+        });
+
+        let tasks = loadTasks();
+        function renderAllTasks() {
+            taskList.innerHTML = '';
+            if (!tasks.length) {
+                taskList.innerHTML = '<div class="empty">当前没有任务，请在左侧添加新的种植任务。</div>';
+                taskCountChip.textContent = '0 个任务';
+                return;
+            }
+            tasks.forEach(task => {
+                const el = createTaskElement(task, function (id) {
+                    tasks = tasks.filter(t => t.id !== id);
+                    saveTasks(tasks);
+                    renderAllTasks();
+                });
+                taskList.appendChild(el);
+            });
+            taskCountChip.textContent = tasks.length + ' 个任务';
+        }
+        renderAllTasks();
+
+        clearAllBtn.addEventListener('click', function () {
+            if (!tasks.length) return;
+            if (!confirm('确定要清空所有种植任务吗？')) return;
+            tasks = [];
+            saveTasks(tasks);
+            renderAllTasks();
+        });
+
+        addTaskBtn.addEventListener('click', function () {
+            const nowMin = timeToMinutes(currentTimeInput.value);
+            if (nowMin === null) {
+                alert('请填写当前时间。');
+                return;
+            }
+            const base = Number(current_duration.value);
+            const seasons = Number(current_season.value);
+            const land = current_land.value;
+            const note = current_note.value.trim();
+            const seasonMinutes = buildTaskSeasons(base, seasons, land);
+            const schedule = [];
+            let cur = nowMin;
+            seasonMinutes.forEach((mins, idx) => {
+                schedule.push({
+                    seasonIndex: idx + 1,
+                    harvestMinutes: cur + mins
+                });
+                cur = cur + mins;
+            });
+
+            const realNow = new Date();
+            const realNowMin = realNow.getHours() * 60 + realNow.getMinutes();
+            let nextIndex = 0;
+            while (nextIndex < schedule.length && schedule[nextIndex].harvestMinutes <= realNowMin) {
+                nextIndex++;
+            }
+            if (nextIndex >= schedule.length) {
+                alert('你当前增加的作物已经全部成熟，请重新种植后再添加任务。');
+                return;
+            }
+
+            const id = Date.now().toString() + '_' + Math.random().toString(36).slice(2, 7);
+            const task = {
+                id,
+                startMinutes: nowMin,
+                startTimeStr: currentTimeInput.value,
+                duration: base,
+                seasons,
+                land,
+                note,
+                schedule,
+                nextIndex
+            };
+            tasks.push(task);
+            saveTasks(tasks);
+            renderAllTasks();
+        });
+
+        setInterval(function () {
+            if (!tasks.length) return;
+            updateTaskTimers(tasks, taskList, function (newTasks) {
+                tasks = newTasks;
+                renderAllTasks();
+            });
+        }, 1000);
+    });
+</script>
+</body>
+</html>
+
