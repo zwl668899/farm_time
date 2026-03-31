@@ -414,7 +414,6 @@
                     <div class="field">
                         <label>作物成熟时间</label>
                         <select id="current_duration">
-                            <option value="0.05">3 分钟测试作物</option>
                             <option value="4">4 小时作物</option>
                             <option value="8" selected>8 小时作物</option>
                             <option value="12">12 小时作物</option>
@@ -587,7 +586,6 @@
         const totalMinutesNow = now.getHours() * 60 + now.getMinutes();
         const totalSecondsNow = totalMinutesNow * 60 + now.getSeconds();
         const audio = document.getElementById('dingAudio');
-        const fallbackMessages = [];
         function notify(msg) {
             let pushedSystemNotify = false;
             if ('Notification' in window && Notification.permission === 'granted') {
@@ -601,10 +599,7 @@
             if (navigator.vibrate) {
                 navigator.vibrate([220, 120, 220]);
             }
-            // 移动端或本地文件环境下通知权限常不可用，降级为页面弹窗提示
-            if (!pushedSystemNotify) {
-                fallbackMessages.push(msg);
-            }
+            // 仅使用系统通知/声音/震动，不再显示页面内弹框
         }
         const toRemove = [];
         tasks.forEach(task => {
@@ -656,9 +651,6 @@
             const remaining = tasks.filter(t => !toRemove.includes(t.id));
             saveTasks(remaining);
             onAutoDelete(remaining);
-        }
-        if (fallbackMessages.length > 0) {
-            alert(fallbackMessages.join('\n'));
         }
     }
     document.addEventListener('DOMContentLoaded', function () {
